@@ -23,12 +23,6 @@
 <body>
   <h1>Bug: Re-adding speculation rules after activation doesn't trigger prerender</h1>
 
-  <p>
-    After a prerendered page is activated (navigated to via the link), returning to this page
-    and re-injecting the same speculation rules does <strong>not</strong> trigger a new prerender
-    of the target. The browser appears to remember the previous rule and refuses to prerender again.
-  </p>
-
   <h2>Steps to Reproduce</h2>
   <ol>
     <li>Open this page — prerender of <code>/target.html</code> should start (check <code>chrome://speculation-rules-internals</code>)</li>
@@ -67,11 +61,14 @@
       if (document.visibilityState === 'visible') {
         log('visibilitychange → visible, refreshing speculation rules');
         const existing = document.querySelector('script[type="speculationrules"]');
+        const rulesText = existing.textContent;
+        existing.remove();
+        log('removed old speculation rules script');
         const fresh = document.createElement('script');
         fresh.type = 'speculationrules';
-        fresh.textContent = existing.textContent;
+        fresh.textContent = rulesText;
         document.head.appendChild(fresh);
-        log('appended fresh speculation rules script');
+        log('appended fresh speculation rules: ' + JSON.stringify(JSON.parse(rulesText)));
       }
     });
   </script>
