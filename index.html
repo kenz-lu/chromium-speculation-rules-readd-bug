@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bug: Re-adding speculation rules after activation doesn't trigger prerender</title>
+  <script type="speculationrules">
+    {
+      "prerender": [
+        {
+          "source": "list",
+          "urls": ["/target.html"],
+          "target_hint": "_blank"
+        }
+      ]
+    }
+  </script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    pre { background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.85rem; }
+    #log { background: #fafafa; border: 1px solid #ddd; padding: 0.5rem 1rem; font-family: monospace; font-size: 0.8rem; max-height: 200px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <h1>Bug: Re-adding speculation rules after activation doesn't trigger prerender</h1>
+
+  <p>
+    After a prerendered page is activated (navigated to via the link), returning to this page
+    and re-injecting the same speculation rules does <strong>not</strong> trigger a new prerender
+    of the target. The browser appears to remember the previous rule and refuses to prerender again.
+  </p>
+
+  <h2>Steps to Reproduce</h2>
+  <ol>
+    <li>Open this page — prerender of <code>/target.html</code> should start (check <code>chrome://speculation-rules-internals</code>)</li>
+    <li>Click the link below to activate the prerender</li>
+    <li>Navigate back to this page</li>
+    <li>On <code>visibilitychange</code>, fresh speculation rules are re-injected (see console log)</li>
+    <li>Check <code>chrome://speculation-rules-internals</code> — no new prerender is triggered</li>
+  </ol>
+
+  <h2>Speculation Rules</h2>
+  <pre id="rules"></pre>
+
+  <h2>Test Link</h2>
+  <p>
+    <a href="/target.html" target="_blank">Open target in new tab</a>
+    — first click activates prerender; after returning, subsequent prerenders don't start
+  </p>
+
+  <h2>Event Log</h2>
+  <div id="log"></div>
+
+  <script>
+    const rules = document.querySelector('script[type="speculationrules"]').textContent;
+    document.getElementById('rules').textContent = JSON.stringify(JSON.parse(rules), null, 2);
+
+    function log(msg) {
+      const el = document.getElementById('log');
+      const line = document.createElement('div');
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      el.appendChild(line);
+      el.scrollTop = el.scrollHeight;
+      console.log(msg);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        log('visibilitychange → visible, refreshing speculation rules');
+        const existing = document.querySelector('script[type="speculationrules"]');
+        const fresh = document.createElement('script');
+        fresh.type = 'speculationrules';
+        fresh.textContent = existing.textContent;
+        document.head.appendChild(fresh);
+        log('appended fresh speculation rules script');
+      }
+    });
+  </script>
+</body>
+</html>

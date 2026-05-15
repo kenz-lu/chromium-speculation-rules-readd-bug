@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Target Page</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+    #status { font-size: 1.2rem; font-weight: 600; padding: 0.75rem; border-radius: 4px; margin: 1rem 0; }
+    .activated { background: #e8f5e9; color: #2e7d32; }
+    .not-activated { background: #ffebee; color: #c62828; }
+    .prerendering { background: #fff3e0; color: #e65100; }
+    table { border-collapse: collapse; margin: 1rem 0; }
+    td, th { text-align: left; padding: 0.25rem 0.75rem; border-bottom: 1px solid #eee; }
+    th { color: #666; font-weight: normal; }
+  </style>
+</head>
+<body>
+  <h1>Target Page</h1>
+  <div id="status" class="prerendering">Checking&hellip;</div>
+
+  <table>
+    <tr><th>URL</th><td id="url"></td></tr>
+    <tr><th>document.prerendering</th><td id="prerendering"></td></tr>
+    <tr><th>activationStart</th><td id="activation-start"></td></tr>
+  </table>
+
+  <p><a href="/">Back</a></p>
+
+  <script>
+    document.getElementById('url').textContent = location.href;
+    document.getElementById('prerendering').textContent = String(document.prerendering);
+
+    function showResult(activated, activationStart) {
+      const s = document.getElementById('status');
+      if (activated) {
+        s.textContent = 'PRERENDER ACTIVATED';
+        s.className = 'activated';
+        document.getElementById('activation-start').textContent = activationStart.toFixed(1) + ' ms';
+      } else {
+        s.textContent = 'NOT PRERENDERED';
+        s.className = 'not-activated';
+        document.getElementById('activation-start').textContent = '0';
+      }
+    }
+
+    if (document.prerendering) {
+      document.getElementById('status').textContent = 'Prerendering…';
+      document.addEventListener('prerenderingchange', () => {
+        document.getElementById('prerendering').textContent = 'false (activated)';
+        const nav = performance.getEntriesByType('navigation')[0];
+        showResult(true, nav?.activationStart ?? 0);
+      });
+    } else {
+      const nav = performance.getEntriesByType('navigation')[0];
+      showResult(nav && nav.activationStart > 0, nav?.activationStart ?? 0);
+    }
+  </script>
+</body>
+</html>
